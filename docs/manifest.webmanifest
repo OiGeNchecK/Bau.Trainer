@@ -1,0 +1,25 @@
+{
+  "name": "Bauplan-Trainer",
+  "short_name": "Bauplan",
+  "lang": "uk",
+  "description": "Курс читання німецьких будівельних планів від нуля до рівня Bauleiter",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0b1823",
+  "theme_color": "#11263a",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

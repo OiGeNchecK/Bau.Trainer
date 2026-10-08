@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#11263a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Bauplan">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<style>:root{padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<meta charset="utf-8">
+<title>Bauplan-Trainer</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=Sofia+Sans+Extra+Condensed:wght@600;800&display=swap">
+<style>
+/* Layout: зліва перелік аркушів як Planliste (за рівнями), справа робочий аркуш, угорі Plankopf зі станом навчання */
+:root{
+  --paper:#e7edef; --sheet:#fbfcfc; --ink:#14242f; --ink2:#51636e; --line:#c3ced4; --tint:#e0e8ec;
+  --accent:#c2361f; --on-accent:#ffffff; --ok:#1b7a4b; --bad:#b3261e; --hl:#f0bd1e; --bestand:#7d8a92;
+  --f-d:"Sofia Sans Extra Condensed","Arial Narrow",sans-serif;
+  --f-b:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-m:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --paper:#0b1823; --sheet:#11263a; --ink:#dcebf2; --ink2:#93adbb; --line:#2c475a; --tint:#183349;
+  --accent:#ff8163; --on-accent:#1d0c06; --ok:#62d49c; --bad:#ff9087; --hl:#f0bd1e; --bestand:#8fa0aa; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --paper:#0b1823; --sheet:#11263a; --ink:#dcebf2; --ink2:#93adbb; --line:#2c475a; --tint:#183349;
+  --accent:#ff8163; --on-accent:#1d0c06; --ok:#62d49c; --bad:#ff9087; --hl:#f0bd1e; --bestand:#8fa0aa; color-scheme:dark }
+
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font:400 16px/1.55 var(--f-b);padding-inline:16px;padding-block:20px 48px}
+.app{max-width:1200px;margin:0 auto;display:grid;gap:16px}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+sup{font-size:.68em;line-height:0}
+b,strong{font-weight:600}
+.de{font-family:var(--f-m);font-size:.92em;font-weight:500}
+
+.kopf{display:grid;grid-template-columns:2fr 1fr 2fr 1.4fr;border:2px solid var(--ink);background:var(--sheet)}
+.kopf>div{padding:8px 12px;border-left:1px solid var(--ink);min-width:0}
+.kopf>div:first-child{border-left:0}
+.kopf small{display:block;font:500 10px/1.2 var(--f-m);letter-spacing:.12em;text-transform:uppercase;color:var(--ink2)}
+.kopf span{font:800 26px/1.05 var(--f-d);letter-spacing:.02em;text-transform:uppercase;display:block;overflow-wrap:anywhere}
+.bar{height:5px;background:var(--tint);margin-top:6px}
+.bar i{display:block;height:100%;background:var(--accent);width:0;transition:width .3s}
+@media (max-width:720px){.kopf{grid-template-columns:1fr 1fr}.kopf>div:nth-child(3){border-left:0}.kopf>div:nth-child(n+3){border-top:1px solid var(--ink)}}
+
+.cols{display:grid;grid-template-columns:260px minmax(0,1fr);gap:16px;align-items:start}
+nav{display:flex;flex-direction:column;border:1px solid var(--line);background:var(--sheet)}
+.lvh{font:500 10px var(--f-m);letter-spacing:.12em;text-transform:uppercase;color:var(--ink2);padding:10px 12px 6px;background:var(--tint);border-bottom:1px solid var(--line)}
+nav button{display:grid;grid-template-columns:24px 1fr 16px;gap:8px;align-items:baseline;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);padding:7px 12px;cursor:pointer}
+nav button:last-child{border-bottom:0}
+nav button:hover{background:var(--tint)}
+nav button[aria-current="true"]{background:var(--ink);color:var(--sheet)}
+nav .no{font:500 12px var(--f-m);opacity:.7}
+nav .nt{font-weight:500;line-height:1.25;font-size:15px}
+nav .nd{display:block;font:400 11px var(--f-m);opacity:.7}
+nav .ck{font:600 13px var(--f-m);color:var(--ok)}
+nav button[aria-current="true"] .ck{color:inherit}
+#jump{display:none;width:100%;border:1px solid var(--ink);background:var(--sheet);padding:10px;border-radius:2px}
+@media (max-width:860px){.cols{grid-template-columns:minmax(0,1fr)}nav{display:none}#jump{display:block}}
+
+.sheet{background:var(--sheet);border:1px solid var(--line);padding:24px clamp(16px,3vw,32px) 28px;display:grid;gap:18px;min-width:0}
+.eyebrow{font:500 11px var(--f-m);letter-spacing:.12em;text-transform:uppercase;color:var(--ink2)}
+h1{font:800 clamp(38px,6vw,56px)/.95 var(--f-d);text-transform:uppercase;letter-spacing:.01em;margin:0;text-wrap:balance}
+h2{font:800 26px/1 var(--f-d);text-transform:uppercase;letter-spacing:.03em;margin:8px 0 0}
+p{margin:0;max-width:68ch}
+.lead{font-size:17px}
+ul.rules{margin:0;padding-left:20px;display:grid;gap:6px;max-width:70ch}
+.note{border-left:3px solid var(--hl);padding:8px 12px;background:var(--tint);max-width:72ch;font-size:15px}
+#body{display:grid;gap:18px;min-width:0}
+
+.btn,.seg,.opt,.tok,.pick{border:1px solid var(--ink);background:var(--sheet);padding:9px 14px;cursor:pointer;border-radius:2px}
+.btn{background:var(--ink);color:var(--sheet);font-weight:500}
+.btn.ghost{background:none;color:var(--ink)}
+.btn:disabled{opacity:.35;cursor:default}
+.pager{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:16px}
+
+.steps{border:1px solid var(--ink);padding:16px;display:grid;gap:12px;min-width:0}
+.dots{display:flex;gap:4px;flex-wrap:wrap}
+.dot{width:28px;height:28px;border:1px solid var(--line);background:var(--sheet);font:500 12px var(--f-m);cursor:pointer;border-radius:2px;padding:0}
+.dot.on{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.dot.seen{border-color:var(--ink)}
+.steps h3{font:800 24px/1.05 var(--f-d);text-transform:uppercase;letter-spacing:.02em;margin:0}
+.sb{display:grid;gap:10px;min-width:0}
+
+.box{border:1px solid var(--line);padding:16px;display:grid;gap:12px;background:var(--paper);min-width:0}
+.qn{font:500 11px var(--f-m);letter-spacing:.1em;text-transform:uppercase;color:var(--ink2)}
+.qt{font-size:17px;font-weight:500;max-width:64ch}
+.opts{display:grid;gap:8px}
+.opt{text-align:left}
+.opt:hover:not(:disabled){background:var(--tint)}
+.opt.right{border-color:var(--ok);box-shadow:inset 4px 0 0 var(--ok)}
+.opt.wrong{border-color:var(--bad);box-shadow:inset 4px 0 0 var(--bad)}
+.opt:disabled{cursor:default}
+.fb{padding:10px 12px;border:1px solid var(--line);background:var(--sheet);font-size:15px;max-width:72ch}
+.fb.good{border-color:var(--ok)} .fb.bad{border-color:var(--bad)}
+.fb b.v{color:var(--ok)} .fb.bad b.v{color:var(--bad)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.row input:not([type=range]):not([type=checkbox]),.row select{border:1px solid var(--ink);background:var(--sheet);padding:9px 10px;width:130px;font-family:var(--f-m);border-radius:2px}
+.row input[type=range]{flex:1 1 180px;accent-color:var(--accent)}
+.unit{font-family:var(--f-m);color:var(--ink2)}
+.res{font:800 30px/1 var(--f-d);text-transform:uppercase}
+.res.good{color:var(--ok)} .res.bad{color:var(--bad)}
+.out{font:600 18px var(--f-m);font-variant-numeric:tabular-nums}
+
+.mode{display:flex;gap:0;flex-wrap:wrap}
+.seg{border-radius:0;margin-right:-1px}
+.seg.on{background:var(--ink);color:var(--sheet)}
+.task{padding:10px 12px;border:2px solid var(--accent);font-weight:500}
+.draw{display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:14px;align-items:start}
+@media (max-width:1020px){.draw{grid-template-columns:minmax(0,1fr)}}
+.scroll{overflow-x:auto;border:1px solid var(--line);background:var(--sheet)}
+.scroll svg{display:block;width:100%;min-width:520px;height:auto}
+.scroll.sm svg{min-width:280px;max-width:520px}
+.info{border:1px solid var(--line);padding:14px;background:var(--paper);display:grid;gap:8px;font-size:15px;min-width:0;align-content:start}
+.info h3{font:600 15px var(--f-m);margin:0}
+.info .ua{color:var(--ink2);font-size:13px}
+svg text{font-family:var(--f-m);fill:var(--ink)}
+.t{font-size:9px;font-variant-numeric:tabular-nums}
+.tb{font-size:10px;font-weight:600}
+.k1{stroke:var(--ink);stroke-width:1;fill:none}
+.k2{stroke:var(--ink);stroke-width:2;fill:none}
+.k3{stroke:var(--ink);stroke-width:3;fill:none}
+.s1{stroke:var(--ink);stroke-width:1}
+.wo{fill:none;stroke:var(--ink);stroke-width:3}
+.pbg{fill:var(--sheet)} .ph{stroke:var(--ink);stroke-width:.8} .ph2{stroke:var(--ink2);stroke-width:.6;fill:none}
+.win{fill:var(--sheet);stroke:var(--ink);stroke-width:1}
+.bx{stroke:var(--ink);stroke-width:2}
+.fi{fill:var(--ink)} .fo{fill:var(--sheet);stroke:var(--ink);stroke-width:1}
+.est{fill:var(--tint);stroke:var(--ink);stroke-width:.7}
+.sec{stroke:var(--accent);stroke-width:3;fill:none} .secf{fill:var(--accent)} text.sect{fill:var(--accent);font-size:13px;font-weight:600}
+.cut{fill:var(--accent);fill-opacity:.28;stroke:var(--accent);stroke-width:1.5}
+.hs{fill:var(--hl);fill-opacity:0;cursor:pointer}
+.hs:hover,.hs:focus{fill-opacity:.28;outline:none}
+.hs.sel{fill:var(--accent);fill-opacity:.2}
+.hs.found{fill:var(--ok);fill-opacity:.25}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.card{border:1px solid var(--line);padding:10px;display:grid;gap:4px;align-content:start;font-size:14px;background:var(--paper)}
+.card .sw{width:120px;max-width:100%;height:auto;background:var(--sheet);border:1px solid var(--line)}
+.card h3{font:600 13px var(--f-m);margin:0}
+.qt .sw{display:block;width:180px;max-width:100%;background:var(--sheet);border:1px solid var(--line);margin-bottom:8px}
+.chips{display:flex;gap:10px;flex-wrap:wrap}
+.chip{display:flex;gap:8px;align-items:center;font-size:14px}
+.chip i{width:34px;height:16px;border:1px solid var(--ink);display:block}
+.picks{display:grid;grid-template-columns:230px minmax(0,1fr);gap:12px}
+@media (max-width:700px){.picks{grid-template-columns:minmax(0,1fr)}}
+.picklist{display:grid;gap:0;align-content:start}
+.pick{text-align:left;border-radius:0;margin-bottom:-1px;display:flex;justify-content:space-between;gap:8px}
+.pick small{font-family:var(--f-m);color:var(--ink2)}
+.pick.on{background:var(--ink);color:var(--sheet)} .pick.on small{color:inherit}
+.flash{border:1px solid var(--line);background:var(--paper);padding:10px;min-height:92px;cursor:pointer;text-align:left;display:grid;align-content:center;gap:2px;border-radius:2px}
+.flash b{font:600 20px var(--f-m)}
+.flash span{font-size:13px;color:var(--ink2)}
+.flash.open{background:var(--sheet);border-color:var(--ink)}
+.flash.open b{font-size:13px}
+.flash.open span{color:var(--ink);font-size:14px}
+.toks{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.tok{font:600 20px var(--f-m);padding:8px 12px}
+.tok.on{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+table{border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}
+td,th{border:1px solid var(--line);padding:5px 10px;text-align:left;vertical-align:top}
+th{font:500 11px var(--f-m);letter-spacing:.08em;text-transform:uppercase;color:var(--ink2)}
+.tbl{overflow-x:auto}
+td.de,th.de{white-space:nowrap}
+.pk{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border:2px solid var(--ink);background:var(--sheet)}
+.pk button{border:0;border-right:1px solid var(--ink);border-bottom:1px solid var(--ink);background:none;text-align:left;padding:6px 8px;cursor:pointer;min-width:0;border-radius:0}
+.pk button small{display:block;font:500 9px var(--f-m);letter-spacing:.1em;text-transform:uppercase;color:var(--ink2)}
+.pk button span{font:500 13px var(--f-m);overflow-wrap:anywhere}
+.pk button.w2{grid-column:span 2}
+.pk button.on{background:var(--hl);color:#14242f}.pk button.on small{color:#14242f}
+@media (max-width:600px){.pk{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.ruler{height:26px;background:var(--ink);min-width:2px;max-width:100%;transition:width .2s}
+.wbl{display:grid;gap:0;border:1px solid var(--line)}
+.wbl div{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:10px;padding:6px 10px;border-bottom:1px solid var(--line);font-size:14px}
+.wbl div:last-child{border-bottom:0}
+.foot{font-size:13px;color:var(--ink2);display:flex;gap:12px;flex-wrap:wrap;justify-content:space-between}
+.foot button{background:none;border:0;text-decoration:underline;cursor:pointer;color:inherit;padding:0}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <pattern id="hm" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="7" height="7" class="pbg"/><line x1="0" y1="0" x2="0" y2="7" class="ph"/></pattern>
+  <pattern id="hb" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="8" height="8" class="pbg"/><line x1="1" y1="0" x2="1" y2="8" class="ph"/><line x1="3.5" y1="0" x2="3.5" y2="8" class="ph"/></pattern>
+  <pattern id="hd" width="6" height="6" patternUnits="userSpaceOnUse"><rect width="6" height="6" class="pbg"/><path d="M0 6L3 0L6 6" class="ph2"/></pattern>
+  <pattern id="hk" width="9" height="9" patternUnits="userSpaceOnUse"><rect width="9" height="9" class="pbg"/><circle cx="2.5" cy="2.5" r="1.5" class="ph2"/><circle cx="7" cy="6.5" r="1.5" class="ph2"/></pattern>
+</defs></svg>
+
+<div class="app">
+  <header class="kopf">
+    <div><small>Projekt</small><span>Bauplan lesen</span></div>
+    <div><small>Blatt</small><span id="k-blatt">01</span></div>
+    <div><small>Inhalt</small><span id="k-inhalt">Planarten</span></div>
+    <div><small>Stand</small><span id="k-stand">0</span><div class="bar"><i id="k-bar"></i></div></div>
+  </header>
+  <div class="cols">
+    <div><select id="jump" aria-label="Перейти до аркуша"></select><nav id="nav" aria-label="Аркуші курсу"></nav></div>
+    <main id="main"></main>
+  </div>
+  <div class="foot"><span>Умовні позначення за DIN 1356-1. Бюро мають свої відхилення, тому на реальному плані спершу читай Legende. Числа з норм звіряй із чинною редакцією.</span><button id="reset" type="button">Скинути прогрес</button></div>
+</div>
+
+<script>
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const sp=s=>String(s).replace(/\^(\d)/g,'<sup>$1</sup>');
+const st=s=>String(s).replace(/\^(\d)/g,'<tspan dy="-3.5" font-size="6.5">$1</tspan>');
+const num=v=>parseFloat(String(v).replace(/[−–]/g,'-').replace(',','.').replace(/[^\d.\-]/g,''));
+const fmt=a=>String(+(+a).toFixed(3)).replace('.',',');
+const shuffle=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const pad=n=>String(n).padStart(2,'0');
+const sw=i=>`<svg viewBox="0 0 120 44" class="sw" role="img">${i}</svg>`;
+
+let S={at:'was',done:{}};
+try{Object.assign(S,JSON.parse(localStorage.getItem('bauplan-trainer')||'{}'))}catch(e){}
+const save=()=>{try{localStorage.setItem('bauplan-trainer',JSON.stringify(S))}catch(e){}};
+
+const M=[],QPOOL=[];
+const LV=['З нуля','Архітектурні плани','Конструкція та мережі','Профі'];
+function L(id,lv,t,de,r,tool){M.push({id,lv,t,de,r,tool})}
+const mark=id=>{if(!S.done[id]){S.done[id]=1;save()}paint()};
+
+/* покрокове пояснення */
+function steps(root,arr){
+  let i=0;const seen=new Set();
+  const draw=()=>{seen.add(i);const s=arr[i];
+    root.innerHTML=`<div class="steps"><div class="dots">${arr.map((_,k)=>`<button type="button" class="dot${k===i?' on':seen.has(k)?' seen':''}" data-k="${k}" aria-label="Крок ${k+1}">${k+1}</button>`).join('')}</div><h3>${s.h}</h3><div class="sb">${sp(s.b)}</div><div class="row"><button type="button" class="btn ghost" data-d="-1"${i?'':' disabled'}>Назад</button><button type="button" class="btn" data-d="1"${i<arr.length-1?'':' disabled'}>Далі</button><span class="unit">крок ${i+1} з ${arr.length}</span></div></div>`;
+    $$('.dot',root).forEach(b=>b.onclick=()=>{i=+b.dataset.k;draw()});
+    $$('[data-d]',root).forEach(b=>b.onclick=()=>{i+=+b.dataset.d;draw()});
+    if(s.f)s.f(root);
+  };draw();
+}
+
+/* тест з варіантами: перший варіант у даних завжди правильний */
+function quiz(root,qs,{n,pass,onPass}){
+  let pool,i,score;
+  const start=()=>{pool=shuffle(typeof qs==='function'?qs():qs).slice(0,n||999);i=0;score=0;show()};
+  function show(){
+    if(i>=pool.length)return end();
+    const q=pool[i],opts=shuffle(q.o.map((t,k)=>({t,ok:k===0})));
+    root.innerHTML=`<div class="box"><div class="qn">Питання ${i+1} з ${pool.length}</div><div class="qt">${sp(q.q)}</div><div class="opts">${opts.map((o,k)=>`<button type="button" class="opt" data-k="${k}">${sp(o.t)}</button>`).join('')}</div><div class="fb" hidden></div></div>`;
+    $$('.opt',root).forEach(b=>b.onclick=()=>{
+      const o=opts[+b.dataset.k];
+      $$('.opt',root).forEach((x,k)=>{x.disabled=true;if(opts[k].ok)x.classList.add('right')});
+      if(o.ok)score++;else b.classList.add('wrong');
+      const fb=$('.fb',root);fb.hidden=false;fb.className='fb '+(o.ok?'good':'bad');
+      fb.innerHTML=`<b class="v">${o.ok?'Правильно.':'Ні.'}</b> ${sp(q.e||'')}<div class="row" style="margin-top:10px"><button type="button" class="btn">Далі</button></div>`;
+      const nx=$('.btn',fb);nx.onclick=()=>{i++;show()};nx.focus();
+    });
+  }
+  function end(){
+    const ok=score>=pass;
+    root.innerHTML=`<div class="box"><div class="res ${ok?'good':'bad'}">${score} з ${pool.length}. ${ok?'Зараховано':'Потрібно '+pass}</div><p>${ok?'Аркуш закрито. Можеш іти далі або пройти ще раз з іншими питаннями.':'Переглянь матеріал вище і спробуй ще раз.'}</p><div class="row"><button type="button" class="btn ghost">Ще раз</button></div></div>`;
+    $('.btn',root).onclick=start;
+    if(ok&&onPass)onPass();
+  }
+  start();
+}
+
+/* розрахункові завдання */
+function drill(root,{gen,list,need,onPass,id}){
+  let ok=0,cur;const q=list?[...list]:null,total=list?list.length:need;
+  function next(){
+    if(ok>=total){
+      root.innerHTML=`<div class="box"><div class="res good">${total} з ${total}. Зараховано</div><div class="row"><button type="button" class="btn ghost">Ще раз</button></div></div>`;
+      $('.btn',root).onclick=()=>drill(root,{gen,list,need,onPass,id});
+      if(onPass)onPass();return;
+    }
+    cur=q?q[0]:gen();
+    root.innerHTML=`<form class="box" novalidate><div class="qn">Розрахунок · правильно ${ok} з ${total}</div><div class="qt">${sp(cur.q)}</div><div class="row"><input id="${id}-in" inputmode="decimal" autocomplete="off" aria-label="Відповідь"><span class="unit">${cur.u}</span><button class="btn">Перевірити</button></div><div class="fb" hidden></div></form>`;
+    const f=root.firstElementChild,inp=$('input',f),fb=$('.fb',f),btn=$('.btn',f);let answered=false;
+    f.onsubmit=e=>{e.preventDefault();
+      if(answered)return next();
+      const v=num(inp.value);
+      if(isNaN(v)){fb.hidden=false;fb.className='fb bad';fb.textContent='Введи число.';return}
+      const good=Math.abs(v-cur.a)<=(cur.tol||0.001);
+      fb.hidden=false;fb.className='fb '+(good?'good':'bad');
+      fb.innerHTML=`<b class="v">${good?'Правильно.':'Ні. Відповідь: '+fmt(cur.a)+' '+cur.u+'.'}</b> ${sp(cur.e||'')}`;
+      answered=true;inp.disabled=true;btn.textContent='Далі';btn.focus();
+      if(good){ok++;if(q)q.shift()}else if(q)q.push(q.shift());
+    };
+  }
+  next();
+}
+
+/* клікабельне креслення */
+function hotspots(root,svg,spots,{findable,onDone}){
+  const rects=spots.map(s=>s.r.map(r=>`<rect class="hs" data-id="${s.id}" x="${r[0]}" y="${r[1]}" width="${r[2]}" height="${r[3]}" tabindex="0" role="button" aria-label="елемент креслення"/>`).join('')).join('');
+  root.innerHTML=`${findable?`<div class="mode"><button type="button" class="seg on" data-m="0">Вивчати</button><button type="button" class="seg" data-m="1">Знайди на плані</button></div>`:''}<div class="task" hidden></div><div class="draw"><div class="scroll">${svg.replace('</svg>',rects+'</svg>')}</div><aside class="info" aria-live="polite"></aside></div>`;
+  const info=$('.info',root),task=$('.task',root);let mode=0,queue=[],miss=0;const seen=new Set();
+  const idle=()=>info.innerHTML=`<h3>Клікни на креслення</h3><p>Кожен елемент тут можна натиснути. Відкрито ${seen.size} з ${spots.length}.</p>`;
+  const showSpot=(s,pre='')=>{$$('.hs',root).forEach(x=>x.classList.toggle('sel',x.dataset.id===s.id));info.innerHTML=`${pre}<h3>${sp(s.t)}</h3><div class="ua">${s.u}</div><p>${sp(s.d)}</p>`};
+  const ask=()=>{
+    if(!queue.length){task.innerHTML=`Усе знайдено. Помилок: ${miss}.`;if(onDone)onDone();return}
+    task.innerHTML=`Знайди на кресленні: <span class="de">${sp(queue[0].t)}</span> <span style="font-weight:400;color:var(--ink2)">· залишилось ${queue.length}</span>`;
+  };
+  const click=id=>{
+    const s=spots.find(x=>x.id===id);
+    if(!mode){seen.add(id);showSpot(s);return}
+    if(!queue.length)return showSpot(s);
+    if(queue[0].id===id){showSpot(s,`<b style="color:var(--ok)">Так, це воно.</b>`);queue.shift();ask()}
+    else{miss++;$$('.hs',root).forEach(x=>x.classList.remove('sel'));info.innerHTML=`<b style="color:var(--bad)">Ні, це ${sp(s.t)}.</b><p>${s.u}. Шукай далі.</p>`}
+  };
+  $$('.hs',root).forEach(r=>{r.onclick=()=>click(r.dataset.id);r.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();click(r.dataset.id)}}});
+  $$('.seg',root).forEach(b=>b.onclick=()=>{mode=+b.dataset.m;$$('.seg',root).forEach(x=>x.classList.toggle('on',x===b));$$('.hs',root).forEach(x=>x.classList.remove('sel'));
+    if(mode){queue=shuffle(spots);miss=0;task.hidden=false;ask();info.innerHTML=`<h3>Режим перевірки</h3><p>Зверху назва елемента. Клікни його на кресленні.</p>`}else{task.hidden=true;idle()}});
+  idle();
+}
+
+/* оболонка */
+const cur=()=>Math.max(0,M.findIndex(m=>m.id===S.at));
+function paint(){
+  const real=M.filter(m=>!m.tool),n=real.filter(m=>S.done[m.id]).length,ci=cur();
+  let h='',lv=-1;
+  M.forEach((m,i)=>{if(m.lv!==lv){lv=m.lv;h+=`<div class="lvh">Рівень ${lv} · ${LV[lv]}</div>`}
+    h+=`<button type="button" data-i="${i}" aria-current="${i===ci}"><span class="no">${pad(i+1)}</span><span class="nt">${m.t}<span class="nd">${m.de}</span></span><span class="ck">${S.done[m.id]?'✓':''}</span></button>`});
+  $('#nav').innerHTML=h;$$('#nav button').forEach(b=>b.onclick=()=>go(+b.dataset.i));
+  $('#jump').innerHTML=M.map((m,i)=>`<option value="${i}"${i===ci?' selected':''}>${pad(i+1)} · ${m.t}${S.done[m.id]?' ✓':''}</option>`).join('');
+  $('#k-blatt').textContent=`${pad(ci+1)} / ${M.length}`;$('#k-inhalt').textContent=M[ci].de;
+  $('#k-stand').textContent=`${n} / ${real.length}`;$('#k-bar').style.width=(n/real.length*100)+'%';
+}
+function go(i){S.at=M[Math.max(0,Math.min(M.length-1,i))].id;save();render();window.scrollTo(0,0)}
+function render(){
+  const ci=cur(),m=M[ci];paint();
+  $('#main').innerHTML=`<article class="sheet"><div class="eyebrow">Рівень ${m.lv} · Blatt ${pad(ci+1)} · ${m.de}</div><h1>${m.t}</h1><div id="body"></div><div class="pager"><button type="button" class="btn ghost" id="prev"${ci?'':' disabled'}>Назад</button><button type="button" class="btn" id="next"${ci<M.length-1?'':' disabled'}>Наступний аркуш</button></div></article>`;
+  m.r($('#body'));
+  $('#prev').onclick=()=>go(ci-1);$('#next').onclick=()=>go(ci+1);
+}
+function boot(){
+  $('#jump').onchange=e=>go(+e.target.value);
+  $('#reset').onclick=e=>{const b=e.target;if(b.dataset.arm){S={at:M[0].id,done:{}};save();delete b.dataset.arm;b.textContent='Скинути прогрес';render()}else{b.dataset.arm=1;b.textContent='Натисни ще раз, щоб стерти прогрес'}};
+  render();
+}
+</script>
+<script charset="utf-8" src="draw.js"></script>
+<script charset="utf-8" src="l0.js"></script>
+<script charset="utf-8" src="l1.js"></script>
+<script charset="utf-8" src="l2.js"></script>
+<script charset="utf-8" src="l3.js"></script>
+<script>boot()</script>
+
+<script>if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js')</script>
+</body>
+</html>
